@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>denisd-org</groupId>
+    <artifactId>public-repo</artifactId>
+    <version>0.0.1</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <build>
+        <finalName>${project.artifactId}-${git.commit.id.describe.semver}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>4.9.9</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                    </execution>
+                    <execution>
+                        <id>validate-the-git-infos</id>
+                        <goals>
+                            <goal>validateRevision</goal>
+                        </goals>
+                        <phase>compile</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                    <!--
+                        Use native 'git' utility because used here JGit has a bug
+                        in its implementation of 'git describe' command
+                        https://bugs.eclipse.org/bugs/show_bug.cgi?id=546703
+                        It's fixed in v5.0.0 but they also dropped java 8...
+                    -->
+                    <useNativeGit>true</useNativeGit>
+                    <gitDescribe>
+                        <dirty>-uncommitted</dirty>
+                        <tags>true</tags> <!-- include lightweight tags -->
+                        <match>v[0-9]*</match> <!-- expected: v0.0.0, v521.20.43.1234 -->
+                    </gitDescribe>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+                    <commitIdGenerationMode>full</commitIdGenerationMode>
+                    <injectAllReactorProjects>true</injectAllReactorProjects>
+                    <replacementProperties>
+                        <replacementProperty>
+                            <property>git.closest.tag.name</property>
+                            <propertyOutputSuffix>semver</propertyOutputSuffix>
+                            <token>^v(.*)$</token>
+                            <value>$1</value>
+                        </replacementProperty>
+                        <replacementProperty>
+                            <property>git.commit.id.describe</property>
+                            <propertyOutputSuffix>semver</propertyOutputSuffix>
+                            <token>^v(.*)$</token>
+                            <value>$1</value>
+                        </replacementProperty>
+                    </replacementProperties>
+                    <validationProperties>
+                        <validationProperty>
+                            <name>Ensure the project version is corresponds to the latest tag</name>
+                            <value>${project.version}</value>
+                            <shouldMatchTo>${git.closest.tag.name.semver}</shouldMatchTo>
+                        </validationProperty>
+                    </validationProperties>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.24</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.atlassian.jira</groupId>
+            <artifactId>jira-api</artifactId>
+            <!-- Jira EOL https://confluence.atlassian.com/support/atlassian-support-end-of-life-policy-201851003.html -->
+            <version>8.15.0</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>jta</groupId>
+                    <artifactId>jta</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>atlassian</id>
+            <name>Atlassian Repository</name>
+            <url>https://maven.atlassian.com/content/groups/public/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
+
+</project>
